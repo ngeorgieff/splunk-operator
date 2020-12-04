@@ -627,10 +627,6 @@ func updateSplunkPodTemplateWithConfig(client splcommon.ControllerClient, podTem
 			Name:  "SPLUNKD_SSL_ENABLE",
 			Value: "false",
 		})
-		env = append(env, corev1.EnvVar{
-			Name:  "NO_HEALTHCHECK",
-			Value: "true",
-		})
 	}
 	if os.Getenv("SPLUNKD_SSL_ENABLE") == "false" {
 		env = append(env, corev1.EnvVar{
