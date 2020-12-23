@@ -72,6 +72,35 @@ func newStandalone(name, ns string) *enterprisev1.Standalone {
 	return &new
 }
 
+// newStandaloneWithLM creates and initializes CR for Standalone Kind with License Master
+func newStandaloneWithLM(name, ns string, licenseMasterName string) *enterprisev1.Standalone {
+
+	new := enterprisev1.Standalone{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Standalone",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       name,
+			Namespace:  ns,
+			Finalizers: []string{"enterprise.splunk.com/delete-pvc"},
+		},
+
+		Spec: enterprisev1.StandaloneSpec{
+			CommonSplunkSpec: enterprisev1.CommonSplunkSpec{
+				Spec: splcommon.Spec{
+					ImagePullPolicy: "IfNotPresent",
+				},
+				LicenseMasterRef: corev1.ObjectReference{
+					Name: licenseMasterName,
+				},
+				Volumes: []corev1.Volume{},
+			},
+		},
+	}
+
+	return &new
+}
+
 func newLicenseMaster(name, ns, licenseConfigMapName string) *enterprisev1.LicenseMaster {
 	new := enterprisev1.LicenseMaster{
 		TypeMeta: metav1.TypeMeta{

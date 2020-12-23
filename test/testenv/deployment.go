@@ -85,6 +85,29 @@ func (d *Deployment) DeployStandalone(name string) (*enterprisev1.Standalone, er
 	return deployed.(*enterprisev1.Standalone), err
 }
 
+// DeployStandaloneWithLM deploys a standalone splunk enterprise instance with license master on the specified testenv
+func (d *Deployment) DeployStandaloneWithLM(name string) (*enterprisev1.Standalone, error) {
+	var licenseMaster string
+
+	// If license file specified, deploy License Master
+	if d.testenv.licenseFilePath != "" {
+		// Deploy the license master
+		_, err := d.DeployLicenseMaster(name)
+		if err != nil {
+			return nil, err
+		}
+
+		licenseMaster = name
+	}
+
+	standalone := newStandaloneWithLM(name, d.testenv.namespace, licenseMaster)
+	deployed, err := d.deployCR(name, standalone)
+	if err != nil {
+		return nil, err
+	}
+	return deployed.(*enterprisev1.Standalone), err
+}
+
 // GetInstance retrieves the standalone, indexer, searchhead, licensemaster instance
 func (d *Deployment) GetInstance(name string, instance runtime.Object) error {
 	key := client.ObjectKey{Name: name, Namespace: d.testenv.namespace}
