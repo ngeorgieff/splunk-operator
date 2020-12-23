@@ -322,4 +322,33 @@ var _ = Describe("Smoke test", func() {
 			testenv.VerifyRFSFMet(deployment, testenvInstance)
 		})
 	})
+
+	Context("Standalone deployment (S1) with license master", func() {
+		It("can deploy a standalone instance and a license master", func() {
+
+			standalone, err := deployment.DeployStandaloneWithLM(deployment.GetName())
+			Expect(err).To(Succeed(), "Unable to deploy standalone instance with license master")
+
+			Eventually(func() splcommon.Phase {
+				err = deployment.GetInstance(deployment.GetName(), standalone)
+				if err != nil {
+					return splcommon.PhaseError
+				}
+				testenvInstance.Log.Info("Waiting for standalone instance status to be ready",
+					"instance", standalone.ObjectMeta.Name, "Phase", standalone.Status.Phase)
+				dumpGetPods(testenvInstance.GetName())
+
+				return standalone.Status.Phase
+			}, deployment.GetTimeout(), PollInterval).Should(Equal(splcommon.PhaseReady))
+
+			// In a steady state, we should stay in Ready and not flip-flop around
+			Consistently(func() splcommon.Phase {
+				_ = deployment.GetInstance(deployment.GetName(), standalone)
+				return standalone.Status.Phase
+			}, ConsistentDuration, ConsistentPollInterval).Should(Equal(splcommon.PhaseReady))
+
+			// Verify MC Pod is Ready
+			testenv.MCPodReady(testenvInstance.GetName(), deployment)
+		})
+	})
 })
