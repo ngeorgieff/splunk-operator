@@ -199,6 +199,13 @@ func (testenv *TestEnv) GetName() string {
 	return testenv.name
 }
 
+//SetLicenseFilePath sets the license file path
+func (testenv *TestEnv) SetLicenseFilePath(path string) error {
+	testenv.licenseFilePath = path
+	err := testenv.createLicenseConfigMap()
+	return err
+}
+
 func (testenv *TestEnv) setup() error {
 	testenv.Log.Info("testenv initializing.\n")
 

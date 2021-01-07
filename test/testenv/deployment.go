@@ -96,7 +96,6 @@ func (d *Deployment) DeployStandaloneWithLM(name string) (*enterprisev1.Standalo
 		if err != nil {
 			return nil, err
 		}
-
 		licenseMaster = name
 	}
 

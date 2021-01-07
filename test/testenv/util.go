@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/onsi/ginkgo"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -384,4 +389,30 @@ func DumpGetPods(ns string) {
 			logf.Log.Info(line)
 		}
 	}
+}
+
+// DownloadFromS3Bucket downloads license file from S3
+func DownloadFromS3Bucket() (string, error) {
+	dataBucket := "splk-test-data-bucket"
+	location := "/test_licenses"
+	item := "enterprise.lic"
+	file, err := os.Create(item)
+	if err != nil {
+		logf.Log.Error(err, "Failed to create error file")
+	}
+	defer file.Close()
+
+	sess, _ := session.NewSession(&aws.Config{Region: aws.String("us-west-2")})
+	downloader := s3manager.NewDownloader(sess)
+	numBytes, err := downloader.Download(file,
+		&s3.GetObjectInput{
+			Bucket: aws.String(dataBucket),
+			Key:    aws.String(location + "/" + "enterprise.lic"),
+		})
+	if err != nil {
+		logf.Log.Error(err, "Failed to download license file")
+	}
+
+	logf.Log.Info("Downloaded", "filename", file.Name(), "bytes", numBytes)
+	return file.Name(), err
 }

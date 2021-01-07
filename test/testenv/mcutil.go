@@ -35,9 +35,9 @@ func getMCPod(ns string) string {
 // getMCSts Get Monitoring Console StatefulSet
 func getMCSts(ns string) string {
 	mcSts := fmt.Sprintf(MonitoringConsoleSts, ns)
-	output, err := exec.Command("kubectl", "get", "sts", "-n", ns, mcSts).Output()
+	output, err := exec.Command("kubectl", "get", "sts", mcSts, "-n", ns).Output()
 	if err != nil {
-		cmd := fmt.Sprintf("kubectl get pods -n %s", ns)
+		cmd := fmt.Sprintf("kubectl get sts %s -n %s", mcSts, ns)
 		logf.Log.Error(err, "Failed to execute command", "command", cmd)
 		return ""
 	}

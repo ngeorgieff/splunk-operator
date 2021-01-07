@@ -41,7 +41,7 @@ var _ = Describe("Smoke test", func() {
 		}
 	})
 
-	Context("Standalone deployment (S1)", func() {
+	XContext("Standalone deployment (S1)", func() {
 		It("can deploy a standalone instance", func() {
 
 			standalone, err := deployment.DeployStandalone(deployment.GetName())
@@ -69,7 +69,7 @@ var _ = Describe("Smoke test", func() {
 		})
 	})
 
-	Context("Clustered deployment (C3 - clustered indexer, search head cluster)", func() {
+	XContext("Clustered deployment (C3 - clustered indexer, search head cluster)", func() {
 		It("can deploy indexers and search head cluster", func() {
 
 			idxCount := 3
@@ -141,7 +141,7 @@ var _ = Describe("Smoke test", func() {
 		})
 	})
 
-	Context("Multisite cluster deployment (M13 - Multisite indexer cluster, Search head cluster)", func() {
+	XContext("Multisite cluster deployment (M13 - Multisite indexer cluster, Search head cluster)", func() {
 		It("can deploy indexers and search head cluster", func() {
 
 			siteCount := 3
@@ -241,7 +241,7 @@ var _ = Describe("Smoke test", func() {
 		})
 	})
 
-	Context("Multisite cluster deployment (M1 - multisite indexer cluster)", func() {
+	XContext("Multisite cluster deployment (M1 - multisite indexer cluster)", func() {
 		It("can deploy multisite indexers cluster", func() {
 
 			siteCount := 3
@@ -324,9 +324,26 @@ var _ = Describe("Smoke test", func() {
 	})
 	Context("Standalone deployment (S1) with LM", func() {
 		It("can deploy a standalone instance and a License Master", func() {
+			licenseFilePath, err := testenv.DownloadFromS3Bucket()
+			Expect(err).To(Succeed(), "Unable to downlaod license file")
+			testenvInstance.SetLicenseFilePath(licenseFilePath)
 
 			standalone, err := deployment.DeployStandaloneWithLM(deployment.GetName())
 			Expect(err).To(Succeed(), "Unable to deploy standalone instance with LM")
+
+			licenseMaster := &enterprisev1.LicenseMaster{}
+			testenvInstance.Log.Info("Start checking")
+			Eventually(func() splcommon.Phase {
+				err := deployment.GetInstance(deployment.GetName(), licenseMaster)
+				if err != nil {
+					return splcommon.PhaseError
+				}
+				testenvInstance.Log.Info("Waiting for License Master instance status to be ready",
+					"instance", licenseMaster.ObjectMeta.Name, "Phase", licenseMaster.Status.Phase)
+				dumpGetPods(testenvInstance.GetName())
+
+				return licenseMaster.Status.Phase
+			}, deployment.GetTimeout(), PollInterval).Should(Equal(splcommon.PhaseReady))
 
 			Eventually(func() splcommon.Phase {
 				err = deployment.GetInstance(deployment.GetName(), standalone)
@@ -348,6 +365,14 @@ var _ = Describe("Smoke test", func() {
 
 			// Verify MC Pod is Ready
 			testenv.MCPodReady(testenvInstance.GetName(), deployment)
+
+			// Verify LM is configured on standalone instance
+			Eventually(func() bool {
+				lmConfigured := testenv.CheckLicenseMasterConfigured(deployment, fmt.Sprintf(testenv.StandalonePod, deployment.GetName(), 0))
+				return lmConfigured
+			}, deployment.GetTimeout(), PollInterval).Should(Equal(true))
+
+			// Expect(100).To(Equal(1488))
 		})
 	})
 })
